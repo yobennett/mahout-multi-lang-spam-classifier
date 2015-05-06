@@ -1,6 +1,7 @@
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.mahout.classifier.naivebayes.BayesUtils;
 import org.apache.mahout.classifier.naivebayes.NaiveBayesModel;
@@ -18,12 +19,14 @@ public class SpamClassifier {
     private static final String MODEL_PATH = WORK_DIR + "/model/naiveBayesModel.bin";
     private static final String LABEL_INDEX_PATH = WORK_DIR + "/labelindex";
     private static final String DICTIONARY_PATH = WORK_DIR + "/spamassassin-vectors/dictionary.file-0";
+    private static final String FREQUENCIES_PATH = WORK_DIR + "/spamassassin-vectors/frequency.file-0";
 
     private final Configuration conf;
     private final NaiveBayesModel model;
     private final StandardNaiveBayesClassifier classifier;
     private final Map<Integer, String> labels;
     private final Map<String, Integer> dictionary;
+    private final Map<Integer, Long> frequencies;
 
     public SpamClassifier() throws IOException {
         this.conf = new Configuration();
@@ -31,6 +34,7 @@ public class SpamClassifier {
         this.classifier = new StandardNaiveBayesClassifier(model);
         this.labels = parseLabels(LABEL_INDEX_PATH);
         this.dictionary = parseDictionary(DICTIONARY_PATH);
+        this.frequencies = parseFrequencies(FREQUENCIES_PATH);
     }
 
     private Map<Integer, String> parseLabels(String path) {
@@ -43,6 +47,18 @@ public class SpamClassifier {
         int value;
         for (Pair<Text, IntWritable> pair : new SequenceFileIterable<Text, IntWritable>(new Path(path), true, conf)) {
             key = pair.getFirst().toString();
+            value = pair.getSecond().get();
+            dict.put(key, value);
+        }
+        return dict;
+    }
+
+    private Map<Integer, Long> parseFrequencies(String path) {
+        Map<Integer, Long> dict = new HashMap<Integer, Long>();
+        int key;
+        long value;
+        for (Pair<IntWritable, LongWritable> pair : new SequenceFileIterable<IntWritable, LongWritable>(new Path(path), true, conf)) {
+            key = pair.getFirst().get();
             value = pair.getSecond().get();
             dict.put(key, value);
         }

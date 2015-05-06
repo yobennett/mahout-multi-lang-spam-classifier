@@ -17,3 +17,6 @@ out/
 # Project deliverables
 *.zip
 target
+
+# Project example resources
+data/

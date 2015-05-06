@@ -16,7 +16,7 @@ import java.util.Map;
 public class SpamClassifier {
 
     private static final String WORK_DIR = "/tmp/mahout-work-bennett";
-    private static final String MODEL_PATH = WORK_DIR + "/model/naiveBayesModel.bin";
+    private static final String MODEL_PATH = WORK_DIR + "/model";
     private static final String LABEL_INDEX_PATH = WORK_DIR + "/labelindex";
     private static final String DICTIONARY_PATH = WORK_DIR + "/spamassassin-vectors/dictionary.file-0";
     private static final String FREQUENCIES_PATH = WORK_DIR + "/spamassassin-vectors/frequency.file-0";
@@ -63,6 +63,14 @@ public class SpamClassifier {
             dict.put(key, value);
         }
         return dict;
+    }
+
+    public static void main(String[] args) {
+        try {
+            SpamClassifier sc = new SpamClassifier();
+        } catch (IOException e) {
+            System.out.println(e);
+        }
     }
 
 }

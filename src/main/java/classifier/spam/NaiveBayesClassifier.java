@@ -1,3 +1,6 @@
+package classifier.spam;
+
+import classifier.Classifier;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 import org.apache.hadoop.conf.Configuration;
@@ -27,14 +30,13 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class SpamClassifier {
+public class NaiveBayesClassifier implements Classifier<String, String> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpamClassifier.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NaiveBayesClassifier.class);
     private static final String PROPERTIES_NAME = "classifier.properties";
 
     private final Configuration conf;
@@ -45,7 +47,7 @@ public class SpamClassifier {
     private final Map<String, Integer> dictionary;
     private final Map<Integer, Long> frequencies;
 
-    public SpamClassifier() {
+    public NaiveBayesClassifier() {
         this.conf = new Configuration();
 
         try {
@@ -97,7 +99,7 @@ public class SpamClassifier {
         return dict;
     }
 
-    private String classify(String text) throws IOException {
+    public String classify(String text) throws IOException {
 
         int documentCount = frequencies.get(-1).intValue();
 
@@ -148,7 +150,7 @@ public class SpamClassifier {
         return labels.get(bestLabelId);
     }
 
-    private String classifyFile(java.nio.file.Path path) throws IOException {
+    public String classifyFile(java.nio.file.Path path) throws IOException {
         byte[] encoded = Files.readAllBytes(path);
         String text = new String(encoded, StandardCharsets.UTF_8);
         String label = classify(text);
@@ -156,7 +158,7 @@ public class SpamClassifier {
         return label;
     }
 
-    private void classifyDir(java.nio.file.Path dir) throws IOException {
+    public void classifyDir(java.nio.file.Path dir) throws IOException {
         // try-with-resources automatically closes the DirectoryStream upon exit
         try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(dir)) {
             for (java.nio.file.Path entry : stream) {
@@ -166,15 +168,6 @@ public class SpamClassifier {
                     classifyFile(entry);
                 }
             }
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            SpamClassifier sc = new SpamClassifier();
-            sc.classifyDir(Paths.get("data", "spamassassin"));
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage());
         }
     }
 

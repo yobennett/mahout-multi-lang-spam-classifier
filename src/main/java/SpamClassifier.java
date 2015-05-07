@@ -135,7 +135,7 @@ public class SpamClassifier {
         return labels.get(bestLabelId);
     }
 
-    private String classify(java.nio.file.Path path) throws IOException {
+    private String classifyFile(java.nio.file.Path path) throws IOException {
         byte[] encoded = Files.readAllBytes(path);
         String text = new String(encoded, StandardCharsets.UTF_8);
         String label = classify(text);
@@ -143,14 +143,14 @@ public class SpamClassifier {
         return label;
     }
 
-    // try-with-resources automatically closes the DirectoryStream upon exit
     private void classifyDir(java.nio.file.Path dir) throws IOException {
+        // try-with-resources automatically closes the DirectoryStream upon exit
         try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(dir)) {
             for (java.nio.file.Path entry : stream) {
                 if (Files.isDirectory(entry)) {
                     classifyDir(entry);
                 } else {
-                    classify(entry);
+                    classifyFile(entry);
                 }
             }
         }
@@ -159,7 +159,7 @@ public class SpamClassifier {
     public static void main(String[] args) {
         try {
             SpamClassifier sc = new SpamClassifier();
-            java.nio.file.Path dir = Paths.get("data/data", "spamassassin");
+            java.nio.file.Path dir = Paths.get("data", "spamassassin");
             sc.classifyDir(dir);
         } catch (IOException e) {
             LOGGER.error(e.getMessage());

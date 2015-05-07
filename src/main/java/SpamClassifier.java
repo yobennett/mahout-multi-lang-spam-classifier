@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -29,42 +30,54 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class SpamClassifier {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SpamClassifier.class);
-
-    private static final String WORK_DIR = "/tmp/mahout-work-bennett";
-    private static final String MODEL_PATH = WORK_DIR + "/model";
-    private static final String LABEL_INDEX_PATH = WORK_DIR + "/labelindex";
-    private static final String DICTIONARY_PATH = WORK_DIR + "/spamassassin-vectors/dictionary.file-0";
-    private static final String FREQUENCIES_PATH = WORK_DIR + "/spamassassin-vectors/df-count/part-r-00000";
+    private static final String PROPERTIES_NAME = "classifier.properties";
 
     private final Configuration conf;
+    private final Properties prop;
     private final NaiveBayesModel model;
     private final StandardNaiveBayesClassifier classifier;
     private final Map<Integer, String> labels;
     private final Map<String, Integer> dictionary;
     private final Map<Integer, Long> frequencies;
 
-    public SpamClassifier() throws IOException {
+    public SpamClassifier() {
         this.conf = new Configuration();
-        this.model = NaiveBayesModel.materialize(new Path(MODEL_PATH), conf);
-        this.classifier = new StandardNaiveBayesClassifier(model);
-        this.labels = parseLabels(LABEL_INDEX_PATH);
-        this.dictionary = parseDictionary(DICTIONARY_PATH);
-        this.frequencies = parseFrequencies(FREQUENCIES_PATH);
+
+        try {
+            this.prop = loadProperties(PROPERTIES_NAME);
+            this.model = NaiveBayesModel.materialize(new Path(prop.getProperty("classifier.model.dir")), conf);
+            this.classifier = new StandardNaiveBayesClassifier(model);
+            this.labels = readLabelIndex(new Path(prop.getProperty("classifier.model.labelindex")));
+            this.dictionary = readDictionary(new Path(prop.getProperty("classifier.model.dictionary.path")));
+            this.frequencies = readFrequencies(new Path(prop.getProperty("classifier.model.frequencies.path")));
+        } catch (IOException e) {
+            throw new IllegalStateException("Missing or invalid classifier properties at " + PROPERTIES_NAME + ".");
+        }
     }
 
-    private Map<Integer, String> parseLabels(String path) {
-        return BayesUtils.readLabelIndex(conf, new Path(path));
+    private Properties loadProperties(String name) throws IOException {
+        Properties properties = new Properties();
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        try (InputStream stream = loader.getResourceAsStream(name)) {
+            properties.load(stream);
+            return properties;
+        }
     }
 
-    private Map<String, Integer> parseDictionary(String path) {
-        Map<String, Integer> dict = new HashMap<String, Integer>();
+    private Map<Integer, String> readLabelIndex(Path path) {
+        return BayesUtils.readLabelIndex(conf, path);
+    }
+
+    private Map<String, Integer> readDictionary(Path path) {
+        Map<String, Integer> dict = new HashMap<>();
         String key;
         int value;
-        for (Pair<Text, IntWritable> pair : new SequenceFileIterable<Text, IntWritable>(new Path(path), true, conf)) {
+        for (Pair<Text, IntWritable> pair : new SequenceFileIterable<Text, IntWritable>(path, true, conf)) {
             key = pair.getFirst().toString();
             value = pair.getSecond().get();
             dict.put(key, value);
@@ -72,11 +85,11 @@ public class SpamClassifier {
         return dict;
     }
 
-    private Map<Integer, Long> parseFrequencies(String path) {
-        Map<Integer, Long> dict = new HashMap<Integer, Long>();
+    private Map<Integer, Long> readFrequencies(Path path) {
+        Map<Integer, Long> dict = new HashMap<>();
         int key;
         long value;
-        for (Pair<IntWritable, LongWritable> pair : new SequenceFileIterable<IntWritable, LongWritable>(new Path(path), true, conf)) {
+        for (Pair<IntWritable, LongWritable> pair : new SequenceFileIterable<IntWritable, LongWritable>(path, true, conf)) {
             key = pair.getFirst().get();
             value = pair.getSecond().get();
             dict.put(key, value);
@@ -159,8 +172,7 @@ public class SpamClassifier {
     public static void main(String[] args) {
         try {
             SpamClassifier sc = new SpamClassifier();
-            java.nio.file.Path dir = Paths.get("data", "spamassassin");
-            sc.classifyDir(dir);
+            sc.classifyDir(Paths.get("data", "spamassassin"));
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
         }

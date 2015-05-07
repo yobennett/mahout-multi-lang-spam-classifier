@@ -27,17 +27,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
 public class NaiveBayesClassifier implements Classifier<String, String> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NaiveBayesClassifier.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(NaiveBayesClassifier.class);
     private static final String PROPERTIES_NAME = "classifier.properties";
+	private static final int TFIDF_CARDINALITY = 10000;
 
     private final Configuration conf;
     private final Properties prop;
@@ -67,6 +65,7 @@ public class NaiveBayesClassifier implements Classifier<String, String> {
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
         try (InputStream stream = loader.getResourceAsStream(name)) {
             properties.load(stream);
+	        LOGGER.info("loaded properties from " + name);
             return properties;
         }
     }
@@ -125,7 +124,7 @@ public class NaiveBayesClassifier implements Classifier<String, String> {
         tokenStream.close();
 
         // vector for term frequency inverse document frequency
-        Vector vector = new RandomAccessSparseVector(10000);
+        Vector vector = new RandomAccessSparseVector(TFIDF_CARDINALITY);
         TFIDF tfidf = new TFIDF();
         for (Multiset.Entry<String> entry : words.entrySet()) {
             String word = entry.getElement();
@@ -148,27 +147,6 @@ public class NaiveBayesClassifier implements Classifier<String, String> {
             }
         }
         return labels.get(bestLabelId);
-    }
-
-    public String classifyFile(java.nio.file.Path path) throws IOException {
-        byte[] encoded = Files.readAllBytes(path);
-        String text = new String(encoded, StandardCharsets.UTF_8);
-        String label = classify(text);
-        LOGGER.info(label + ", " + path.toAbsolutePath());
-        return label;
-    }
-
-    public void classifyDir(java.nio.file.Path dir) throws IOException {
-        // try-with-resources automatically closes the DirectoryStream upon exit
-        try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(dir)) {
-            for (java.nio.file.Path entry : stream) {
-                if (Files.isDirectory(entry)) {
-                    classifyDir(entry);
-                } else {
-                    classifyFile(entry);
-                }
-            }
-        }
     }
 
 }

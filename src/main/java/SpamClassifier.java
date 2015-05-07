@@ -18,16 +18,21 @@ import org.apache.mahout.common.iterator.sequencefile.SequenceFileIterable;
 import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.vectorizer.TFIDF;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
 public class SpamClassifier {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SpamClassifier.class);
 
     private static final String WORK_DIR = "/tmp/mahout-work-bennett";
     private static final String MODEL_PATH = WORK_DIR + "/model";
@@ -126,39 +131,38 @@ public class SpamClassifier {
                 bestScore = score;
                 bestLabelId = labelId;
             }
-            System.out.println(labels.get(labelId) + ": " + score);
         }
-        System.out.println("* best label: " + labels.get(bestLabelId));
         return labels.get(bestLabelId);
     }
 
     private String classify(java.nio.file.Path path) throws IOException {
         byte[] encoded = Files.readAllBytes(path);
         String text = new String(encoded, StandardCharsets.UTF_8);
-        return classify(text);
+        String label = classify(text);
+        LOGGER.info(label + ", " + path.toAbsolutePath());
+        return label;
+    }
+
+    // try-with-resources automatically closes the DirectoryStream upon exit
+    private void classifyDir(java.nio.file.Path dir) throws IOException {
+        try (DirectoryStream<java.nio.file.Path> stream = Files.newDirectoryStream(dir)) {
+            for (java.nio.file.Path entry : stream) {
+                if (Files.isDirectory(entry)) {
+                    classifyDir(entry);
+                } else {
+                    classify(entry);
+                }
+            }
+        }
     }
 
     public static void main(String[] args) {
         try {
             SpamClassifier sc = new SpamClassifier();
-
-            String[] paths = new String[] {
-                "/tmp/mahout-work-bennett/spamassassin-all/ham/2551.3b1f94418de5bd544c977b44bcc7e740",
-                "/tmp/mahout-work-bennett/spamassassin-all/spam/0210.285d263b1a18e67c68ec9fe005253dd0",
-                "/Users/bennett/Code/src/github.com/yobennett/mahout-spam-classifier/src/main/resources/ham/aphyr-jepsen-aerospike.txt",
-                "/Users/bennett/Code/src/github.com/yobennett/mahout-spam-classifier/src/main/resources/spam/britney-and-friends.txt",
-                "/Users/bennett/Code/src/github.com/yobennett/mahout-spam-classifier/src/main/resources/spam/court-notice.txt",
-                "/Users/bennett/Code/src/github.com/yobennett/mahout-spam-classifier/src/main/resources/spam/hearthstone-kr-spam-01.txt",
-                "/Users/bennett/Code/src/github.com/yobennett/mahout-spam-classifier/src/main/resources/spam/hearthstone-kr-spam-02.txt"
-            };
-
-            for (String path : paths) {
-                System.out.println("Classifying " + path + "...");
-                sc.classify(Paths.get(path));
-            }
-
+            java.nio.file.Path dir = Paths.get("data/data", "spamassassin");
+            sc.classifyDir(dir);
         } catch (IOException e) {
-            System.out.println(e);
+            LOGGER.error(e.getMessage());
         }
     }
 

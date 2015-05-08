@@ -11,6 +11,9 @@ import java.nio.file.Paths;
 
 public class ClassifyDir {
 
+	/**
+	 * Recursively classify all files in a given directory
+	 */
 	public static void main(String... args) {
 		try {
 			if (args.length <= 0) {

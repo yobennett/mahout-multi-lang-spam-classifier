@@ -18,6 +18,13 @@ public class StringClassifierUtils {
 	// private constructor
 	private StringClassifierUtils() {}
 
+	/**
+	 * Classifies the text of a given file
+	 * @param classifier the classifier to categorize the {@link String} instance to a {@link classifier.spam.Label}
+	 * @param path the path to the target file
+	 * @return the predicted {@link classifier.spam.Label}
+	 * @throws IOException
+	 */
 	public static Label classifyFile(Classifier<Label, String> classifier, java.nio.file.Path path) throws IOException {
 		byte[] encoded = Files.readAllBytes(path);
 		String text = new String(encoded, StandardCharsets.UTF_8);
@@ -26,6 +33,12 @@ public class StringClassifierUtils {
 		return label;
 	}
 
+	/**
+	 * Recursively classify all files in a given directory
+	 * @param classifier the classifier to categorize the {@link String} instance to a {@link classifier.spam.Label}
+	 * @param dir the path to the target directory
+	 * @throws IOException
+	 */
 	public static void classifyDir(Classifier<Label, String> classifier, java.nio.file.Path dir) throws IOException {
 		LOGGER.info("classifying dir: " + dir);
 		// try-with-resources automatically closes the DirectoryStream upon exit

@@ -17,6 +17,13 @@ public class InstanceVectorCalculator {
         this.vector = calculateVector(words, dictionary, frequencies);
     }
 
+	/**
+	 * Calculates the TFIDF (term frequency inverse document frequency) vector for a set of words
+	 * @param words the target instance
+	 * @param dictionary map from word to word id
+	 * @param frequencies map from word id to frequency count
+	 * @return the instance vector for the target instance
+	 */
     private Vector calculateVector(Multiset<String> words, Map<String, Integer> dictionary, Map<Integer, Long> frequencies) {
         int documentCount = frequencies.get(-1).intValue();
 
@@ -35,6 +42,10 @@ public class InstanceVectorCalculator {
         return v;
     }
 
+	/**
+	 * Returns the calculated {@link org.apache.mahout.math.Vector} of the target instance
+	 * @return calculated {@link org.apache.mahout.math.Vector} for target instance
+	 */
     public Vector vector() {
         return vector;
     }

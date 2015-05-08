@@ -50,6 +50,12 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
         }
     }
 
+	/**
+	 * Loads properties
+	 * @param name properties filename
+	 * @return properties
+	 * @throws IOException
+	 */
     private Properties loadProperties(String name) throws IOException {
         Properties properties = new Properties();
         ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -60,10 +66,20 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
         }
     }
 
+	/**
+	 * Reads label index from a given path
+	 * @param path path to label index
+	 * @return label index map from label id to label name
+	 */
     private Map<Integer, String> readLabelIndex(Path path) {
         return BayesUtils.readLabelIndex(conf, path);
     }
 
+	/**
+	 * Reads dictionary from a given path, which is a Hadoop sequence file
+	 * @param path path to dictionary
+	 * @return dictionary map from word to word id
+	 */
     private Map<String, Integer> readDictionary(Path path) {
         Map<String, Integer> dict = new HashMap<>();
         String key;
@@ -76,6 +92,11 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
         return dict;
     }
 
+	/**
+	 * Reads frequencies from a given path, which is a Hadoop sequence file
+	 * @param path path to frequencies
+	 * @return frequencies map from word id to frequency count
+	 */
     private Map<Integer, Long> readFrequencies(Path path) {
         Map<Integer, Long> dict = new HashMap<>();
         int key;
@@ -88,8 +109,24 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
         return dict;
     }
 
+	/**
+	 * Returns analysis of instance
+	 * @param instance text to analyze
+	 * @return analysis of instance
+	 * @throws IOException
+	 */
+	public Analysis analysis(String instance) throws IOException {
+		return new EnglishAnalysis(instance, dictionary, frequencies);
+	}
+
+	/**
+	 * Classifies instance
+	 * @param instance text to analyze
+	 * @return classification of instance to {@link classifier.spam.Label}
+	 * @throws IOException
+	 */
     public Label classify(String instance) throws IOException {
-	    Analysis analysis = new EnglishAnalysis(instance, dictionary, frequencies);
+	    Analysis analysis = analysis(instance);
 	    Vector instanceVector = analysis.instanceVector();
 
         Vector probabilitiesVector = classifier.classifyFull(instanceVector);

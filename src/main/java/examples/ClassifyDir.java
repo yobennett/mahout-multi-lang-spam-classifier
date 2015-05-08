@@ -30,7 +30,7 @@ public class ClassifyDir {
 			// set up a Naive Bayes classifier
 			// in our case we are classifying String objects (i.e. posts)
 			// which are classified into a label (spam, ham, unsure)
-			Classifier<Label, String> classifier = new NaiveBayesClassifier();
+			Classifier<Label, String> classifier = new NaiveBayesClassifier("classifier.properties");
 
 			// classify all entries in the target directory and its subdirectories
 			StringClassifierUtils.classifyDir(classifier, path);

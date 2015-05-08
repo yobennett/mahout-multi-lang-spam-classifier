@@ -1,32 +1,24 @@
 package classifier.spam;
 
 import classifier.Classifier;
-import com.google.common.collect.ConcurrentHashMultiset;
-import com.google.common.collect.Multiset;
+import classifier.analyses.Analysis;
+import classifier.analyses.EnglishAnalysis;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.util.Version;
 import org.apache.mahout.classifier.naivebayes.BayesUtils;
 import org.apache.mahout.classifier.naivebayes.NaiveBayesModel;
 import org.apache.mahout.classifier.naivebayes.StandardNaiveBayesClassifier;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.iterator.sequencefile.SequenceFileIterable;
-import org.apache.mahout.math.RandomAccessSparseVector;
 import org.apache.mahout.math.Vector;
-import org.apache.mahout.vectorizer.TFIDF;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -34,8 +26,6 @@ import java.util.Properties;
 public class NaiveBayesClassifier implements Classifier<Label, String> {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NaiveBayesClassifier.class);
-    private static final String PROPERTIES_NAME = "classifier.properties";
-	private static final int TFIDF_CARDINALITY = 10000;
 
     private final Configuration conf;
     private final Properties prop;
@@ -45,18 +35,18 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
     private final Map<String, Integer> dictionary;
     private final Map<Integer, Long> frequencies;
 
-    public NaiveBayesClassifier() {
+    public NaiveBayesClassifier(String propertiesName) {
         this.conf = new Configuration();
 
         try {
-            this.prop = loadProperties(PROPERTIES_NAME);
+            this.prop = loadProperties(propertiesName);
             this.model = NaiveBayesModel.materialize(new Path(prop.getProperty("classifier.model.dir")), conf);
             this.classifier = new StandardNaiveBayesClassifier(model);
             this.labels = readLabelIndex(new Path(prop.getProperty("classifier.model.labelindex")));
             this.dictionary = readDictionary(new Path(prop.getProperty("classifier.model.dictionary.path")));
             this.frequencies = readFrequencies(new Path(prop.getProperty("classifier.model.frequencies.path")));
         } catch (IOException e) {
-            throw new IllegalStateException("Missing or invalid classifier properties at " + PROPERTIES_NAME + ".");
+            throw new IllegalStateException("Missing or invalid classifier properties at " + propertiesName + ".");
         }
     }
 
@@ -98,47 +88,14 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
         return dict;
     }
 
-    public Label classify(String text) throws IOException {
+    public Label classify(String instance) throws IOException {
+	    Analysis analysis = new EnglishAnalysis(instance, dictionary, frequencies);
+	    Vector instanceVector = analysis.instanceVector();
 
-        int documentCount = frequencies.get(-1).intValue();
-
-        // extract words
-        Multiset<String> words = ConcurrentHashMultiset.create();
-        Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
-        TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(text));
-        CharTermAttribute termAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-        tokenStream.reset();
-        int wordCount = 0;
-        while (tokenStream.incrementToken()) {
-            if (termAttribute.length() > 0) {
-                String word = tokenStream.getAttribute(CharTermAttribute.class).toString();
-                Integer id = dictionary.get(word);
-                if (id != null) {
-                    words.add(word);
-                    wordCount++;
-                }
-            }
-        }
-        analyzer.close();
-        tokenStream.end();
-        tokenStream.close();
-
-        // vector for term frequency inverse document frequency
-        Vector vector = new RandomAccessSparseVector(TFIDF_CARDINALITY);
-        TFIDF tfidf = new TFIDF();
-        for (Multiset.Entry<String> entry : words.entrySet()) {
-            String word = entry.getElement();
-            int count = entry.getCount();
-            Integer id = dictionary.get(word);
-            Long frequency = frequencies.get(id);
-            double tfIdfValue = tfidf.calculate(count, frequency.intValue(), wordCount, documentCount);
-            vector.setQuick(id, tfIdfValue);
-        }
-
-        Vector resultVector = classifier.classifyFull(vector);
+        Vector probabilitiesVector = classifier.classifyFull(instanceVector);
         double bestScore = -Double.MAX_VALUE;
         int bestLabelId = -1;
-        for (Vector.Element e : resultVector.all()) {
+        for (Vector.Element e : probabilitiesVector.all()) {
             int labelId = e.index();
             double score = e.get();
             if (bestScore < score) {

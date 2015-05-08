@@ -4,17 +4,12 @@ import classifier.Classifier;
 import classifier.spam.Label;
 import classifier.spam.NaiveBayesClassifier;
 import classifier.utils.StringClassifierUtils;
-import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class ClassifyDir {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(ClassifyDir.class);
 
 	public static void main(String... args) {
 		try {
@@ -24,8 +19,6 @@ public class ClassifyDir {
 
 			// path to target directory
 			Path path = Paths.get(args[0]);
-
-			LOGGER.info("classifying into: " + Joiner.on(", ").join(Label.values()));
 
 			// set up a Naive Bayes classifier
 			// in our case we are classifying String objects (i.e. posts)

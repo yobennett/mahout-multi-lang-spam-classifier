@@ -5,9 +5,9 @@ import org.apache.mahout.math.Vector;
 
 import java.io.IOException;
 
-public interface Analysis {
+public interface Analysis<T> {
 
-    Multiset<String> words(String text) throws IOException;
+    Multiset<T> words(T text) throws IOException;
 
     Vector instanceVector();
 

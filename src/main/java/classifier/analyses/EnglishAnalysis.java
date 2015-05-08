@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Map;
 
-public class EnglishAnalysis implements Analysis {
+public class EnglishAnalysis implements Analysis<String> {
 
     private final Map<String, Integer> dictionary;
     private final Multiset<String> words;

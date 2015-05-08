@@ -2,7 +2,6 @@ package classifier.spam;
 
 import classifier.Classifier;
 import classifier.analyses.Analysis;
-import classifier.analyses.EnglishAnalysis;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -13,7 +12,6 @@ import org.apache.mahout.classifier.naivebayes.NaiveBayesModel;
 import org.apache.mahout.classifier.naivebayes.StandardNaiveBayesClassifier;
 import org.apache.mahout.common.Pair;
 import org.apache.mahout.common.iterator.sequencefile.SequenceFileIterable;
-import org.apache.mahout.math.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,10 +28,10 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
     private final Configuration conf;
     private final Properties prop;
     private final NaiveBayesModel model;
-    private final StandardNaiveBayesClassifier classifier;
-    private final Map<Integer, String> labels;
-    private final Map<String, Integer> dictionary;
-    private final Map<Integer, Long> frequencies;
+    protected final StandardNaiveBayesClassifier classifier;
+    protected final Map<Integer, String> labels;
+    protected final Map<String, Integer> dictionary;
+    protected final Map<Integer, Long> frequencies;
 
     public NaiveBayesClassifier(String propertiesName) {
         this.conf = new Configuration();
@@ -116,7 +114,7 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
 	 * @throws IOException
 	 */
 	public Analysis analysis(String instance) throws IOException {
-		return new EnglishAnalysis(instance, dictionary, frequencies);
+		throw new UnsupportedOperationException("should override");
 	}
 
 	/**
@@ -126,21 +124,7 @@ public class NaiveBayesClassifier implements Classifier<Label, String> {
 	 * @throws IOException
 	 */
     public Label classify(String instance) throws IOException {
-	    Analysis analysis = analysis(instance);
-	    Vector instanceVector = analysis.instanceVector();
-
-        Vector probabilitiesVector = classifier.classifyFull(instanceVector);
-        double bestScore = -Double.MAX_VALUE;
-        int bestLabelId = -1;
-        for (Vector.Element e : probabilitiesVector.all()) {
-            int labelId = e.index();
-            double score = e.get();
-            if (bestScore < score) {
-                bestScore = score;
-                bestLabelId = labelId;
-            }
-        }
-        return Label.valueOf(labels.get(bestLabelId));
+	    throw new UnsupportedOperationException("should override");
     }
 
 }

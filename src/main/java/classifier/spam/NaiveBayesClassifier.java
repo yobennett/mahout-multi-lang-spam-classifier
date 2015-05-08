@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class NaiveBayesClassifier implements Classifier<String, String> {
+public class NaiveBayesClassifier implements Classifier<Label, String> {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NaiveBayesClassifier.class);
     private static final String PROPERTIES_NAME = "classifier.properties";
@@ -98,7 +98,7 @@ public class NaiveBayesClassifier implements Classifier<String, String> {
         return dict;
     }
 
-    public String classify(String text) throws IOException {
+    public Label classify(String text) throws IOException {
 
         int documentCount = frequencies.get(-1).intValue();
 
@@ -146,7 +146,7 @@ public class NaiveBayesClassifier implements Classifier<String, String> {
                 bestLabelId = labelId;
             }
         }
-        return labels.get(bestLabelId);
+        return Label.valueOf(labels.get(bestLabelId));
     }
 
 }

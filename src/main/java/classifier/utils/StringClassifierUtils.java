@@ -1,6 +1,7 @@
 package classifier.utils;
 
 import classifier.Classifier;
+import classifier.spam.Label;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,15 +18,16 @@ public class StringClassifierUtils {
 	// private constructor
 	private StringClassifierUtils() {}
 
-	public static String classifyFile(Classifier<String,String> classifier, java.nio.file.Path path) throws IOException {
+	public static Label classifyFile(Classifier<Label, String> classifier, java.nio.file.Path path) throws IOException {
 		byte[] encoded = Files.readAllBytes(path);
 		String text = new String(encoded, StandardCharsets.UTF_8);
-		String label = classifier.classify(text);
+		Label label = classifier.classify(text);
 		LOGGER.info(label + ", " + path.toAbsolutePath());
 		return label;
 	}
 
-	public static void classifyDir(Classifier<String,String> classifier, java.nio.file.Path dir) throws IOException {
+	public static void classifyDir(Classifier<Label, String> classifier, java.nio.file.Path dir) throws IOException {
+		LOGGER.info("classifying dir: " + dir);
 		// try-with-resources automatically closes the DirectoryStream upon exit
 		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir)) {
 			for (java.nio.file.Path entry : stream) {
